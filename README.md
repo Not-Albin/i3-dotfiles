@@ -70,7 +70,3 @@ screenshots/                  # desktop previews
 | ![Desktop 1](screenshots/2026-06-24_20-40-10.png) | i3 + Polybar + Rofi |
 | ![Desktop 2](screenshots/2026-06-24_21-10-06.png) | Kitty + ncmpcpp |
 | ![Desktop 3](screenshots/2026-06-24_21-11-38.png) | Apps overview |
-
-## License
-
-MIT
