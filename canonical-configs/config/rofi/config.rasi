@@ -1,0 +1,17 @@
+
+ filebrowser {
+      directories-first: true;
+      sorting-method:    "name";
+  }
+
+configuration {
+    modi: "drun";
+    show-icons: true;
+    font: "Inter 11";
+
+    drun-display-format: "{name}";
+    disable-history: false;
+
+    sidebar-mode: false;
+}
+@theme "catppuccin"

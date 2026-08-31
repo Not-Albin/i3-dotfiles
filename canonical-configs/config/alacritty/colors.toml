@@ -1,0 +1,23 @@
+[colors.primary]
+background = "{{mantle}}"
+foreground = "{{text}}"
+
+[colors.normal]
+black = "{{crust}}"
+red = "{{red}}"
+green = "{{green}}"
+yellow = "{{yellow}}"
+blue = "{{blue}}"
+magenta = "{{mauve}}"
+cyan = "{{teal}}"
+white = "{{text}}"
+
+[colors.bright]
+black = "{{surface0}}"
+red = "{{red}}"
+green = "{{green}}"
+yellow = "{{yellow}}"
+blue = "{{blue}}"
+magenta = "{{mauve}}"
+cyan = "{{teal}}"
+white = "{{text}}"
