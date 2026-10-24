@@ -349,7 +349,17 @@ EOF
             ;;
         *)
             log_error "No package list for OS: $OS_ID"
-            exit 1
+            exit 1 echo "  Mod+1-0     - Switch workspace"
+    echo "  Mod+Shift+1-0 - Move window to workspace"
+    echo "  Mod+X       - Power menu"
+    echo "  Mod+C       - Screenshot menu"
+    echo "  Mod+Z       - Music player (ncmpcpp)"
+    echo
+    if [[ -d "$BACKUP_DIR" ]]; then
+        log_info "Backups saved to: $BACKUP_DIR"
+    fi
+}
+
             ;;
     esac
 }
@@ -667,42 +677,42 @@ setup_mpd() {
     log_success "MPD setup complete!"
 }
 
-create_wallpaper_script() {
-    local wallpaper_path="$1"
-    cat > "$HOME_DIR/.config/set-wallpaper.sh" << EOF
-#!/usr/bin/env bash
-# Auto-generated wallpaper setter
-WALLPAPER="$wallpaper_path"
-[[ -f "\$WALLPAPER" ]] && feh --no-fehbg --bg-fill "\$WALLPAPER"
-EOF
-    chmod +x "$HOME_DIR/.config/set-wallpaper.sh"
-}
 
 set_wallpaper() {
     log_step "Setting up wallpaper..."
 
-    local default_wallpaper="$HOME_DIR/Pictures/wallpapers/wallhaven-6dygpl_1920x1080.png"
-    local wallpaper_path=""
+    local wall_dir="$HOME_DIR/Pictures/wallpapers"
+    local default_name="wallhaven-6dygpl_1920x1080.png"
+    local i3_conf="$HOME_DIR/.config/i3/config"
+    local name=""
 
-    if [[ -f "$default_wallpaper" ]]; then
-        wallpaper_path="$default_wallpaper"
+    if [[ -f "$wall_dir/$default_name" ]]; then
+        name="$default_name"
     else
-        local wallpapers=("$HOME_DIR/Pictures/wallpapers/"*)
-        if [[ -f "${wallpapers[0]}" ]]; then
-            wallpaper_path="${wallpapers[0]}"
-            log_warn "Default wallpaper not found, using: $(basename "$wallpaper_path")"
-        fi
-    fi
+        name="$(find "$wall_dir" -maxdepth 1 -type f \
+            \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) \
+            -printf '%f\n' 2>/dev/null | sort | head -n1)"
+        [[ -n "$name" ]] && log_warn "Default wallpaper not found, using:$name"
+   fi
 
-    if [[ -n "$wallpaper_path" ]]; then
-        log_info "Setting wallpaper: $(basename "$wallpaper_path")"
-        run_cmd "feh --no-fehbg --bg-fill \"$wallpaper_path\""
-        create_wallpaper_script "$wallpaper_path"
-        log_success "Wallpaper set!"
-    else
-        log_warn "No wallpapers found in ~/Pictures/wallpapers/"
-        log_info "Add wallpapers and run: feh --no-fehbg --bg-fill ~/Pictures/wallpapers/your-wallpaper.png"
-    fi
+   if [[ -z "$name" ]]; then
+       log_warn "No wallpapers found in $wall_dir"
+       return 0;
+   fi
+
+   if [[ ! -f "$i3_conf" ]]; then
+       log_warn "i3 config not found at $i3_conf, skipping wallpaper"
+       return 0;
+   fi
+
+   if [[ "$DRY_RUN" == true ]]; then
+       log_info "[dry-run] Would set wallpaper in i3 config: $name"
+   return 0
+   fi
+
+   sed -i -e '/feh .*--bg-/d' -e '/# Wallpaper (set by install,sh)/d' "$i3_conf"
+   printf '\n# Wallpaper (set by install.sh)\nexec_always --no-startup-id feh --no-fehbg --bg-fill "$HOME/Pictures/wallpapers/%s"\n' "$name" >> "$i3_conf"
+   log_success "Wallpaper set in i3 config: $name"
 }
 
 setup_shell() {
@@ -722,10 +732,8 @@ setup_shell() {
 
 # Catppuccin Dotfiles
 export PATH="$HOME/.local/bin:/usr/local/bin:$PATH"
-# Wallpaper setter (run on login)
-[[ -f "$HOME/.config/set-wallpaper.sh" ]] && "$HOME/.config/set-wallpaper.sh"
 EOF
-        log_info "Added PATH and wallpaper setter to $shell_rc"
+        log_info "Added PATH to $shell_rc"
     fi
 
     log_success "Shell integration ready!"
