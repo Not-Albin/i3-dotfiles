@@ -4,9 +4,9 @@
 ; Copyright (C) 2022 Keyitdev, Aditya Shakya
 
 ### Directories ###
-ncmpcpp_directory 	= /home/Albin/.config/ncmpcpp
-lyrics_directory  	= /home/Albin/.config/ncmpcpp/lyrics
-mpd_music_dir     	= /home/Albin/Music
+ncmpcpp_directory 	= ~/.config/ncmpcpp
+lyrics_directory  	= ~/.config/ncmpcpp/lyrics
+mpd_music_dir     	= ~/Music
 mpd_host = localhost
 mpd_port 		  	= "6600"
 mpd_crossfade_time 	= "2"
@@ -48,7 +48,7 @@ progressbar_elapsed_color   = "cyan"
 
 ### Alternative UI ###
 alternative_ui_separator_color 		  = "black"
-alternative_header_first_line_format  = $b$5$/b  $b$8{%t}|{%f}$/b $/b 
+alternative_header_first_line_format  = $b$5$/b  $b$8{%t}|{%f}$/b $/b
 alternative_header_second_line_format = {$b{$2  %a$9}{ - $7  %b$9}}
 
 ### Song list ###
