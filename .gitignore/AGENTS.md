@@ -70,3 +70,11 @@ source theme-engine/catppuccin-palette.sh && print_colors latte
 - `usr/local/bin/` scripts are POSIX sh (`#!/bin/sh`), not bash. Don't use bashisms there.
 - The `theme-switcher.sh --apply-home` reads current variant from `~/.config/.catppuccin-variant`. If that file is missing/corrupt, it defaults to "mocha".
 - `Backup/` and `Backup_conf/` directories inside `canonical-configs/` are skipped during rendering.
+
+## Audit Findings
+
+- `install.sh --dry-run` silently skips the `mkdir -p ~/.config` and `cp ... ~/.config` steps; the preview is incomplete/misleading because step 3 only copies when `$staging_dir/.config` exists, which never occurs in dry-run mode.
+- Package fallback retries every package on systemic failures (no network, repo lock, sudo failure); with ~40 packages this produces ~40 failing commands and reports success even when nothing installed, though the "one bad package" isolation works correctly.
+- NixOS `PM_INSTALL=""` is dead code (never used since `install_dependencies` returns early); the support message at the top of `install.sh` says "NixOS: configs only" but verification still lists it as fully supported — inconsistency to reconcile.
+- `theme-switcher.sh` refactor is correct: unconditionally writing `.catppuccin-variant` enables runtime switching, and install's `cp -r "$staging_dir/.config/."` now carries that hidden file through.
+- `canonical-configs/config/polybar/config.ini` was significantly reformatted: icons replaced (font-awesome  etc. →  etc.), `%{T2}...%{T-}` text styling wrappers added throughout, playerctl updated to include `fastpotify`, `format-font` added to wireless-network module, and various `format-prefix` changes with `%{T2}` wrappers.

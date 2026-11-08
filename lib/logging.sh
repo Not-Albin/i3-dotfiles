@@ -17,6 +17,7 @@ log_step()    { echo -e "\n${MAGENTA}▶${NC} ${BOLD}$*${NC}"; }
 #   - if DRY_RUN=true, shows what would run
 #   - if VERBOSE=true (or 2nd arg is true), shows output
 #   - otherwise suppresses output
+# Note: Commands are constructed internally by install.sh, not from user input
 run_cmd() {
     local cmd="$1"
     local verbose="${2:-${VERBOSE:-false}}"
@@ -25,9 +26,9 @@ run_cmd() {
         log_info "[DRY-RUN] $cmd"
     else
         if [[ "$verbose" == true ]]; then
-            eval "$cmd"
+            bash -c "$cmd"
         else
-            eval "$cmd" >/dev/null 2>&1
+            bash -c "$cmd" >/dev/null 2>&1
         fi
     fi
 }

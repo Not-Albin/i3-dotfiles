@@ -1,18 +1,32 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-touchad_id=$(xinput list | grep -i 'touchpad' | grep -oP 'id=\K\d+')
+# More specific touchpad detection - look for actual touchpad devices, not just any match
+# Try multiple patterns for better device detection
+touchpad_id=$(xinput list --name-only 2>/dev/null | grep -iE 'touchpad|synaptics|alps|elantech|etps|trackpad' | head -1 | xargs -I {} xinput list --id-only "{}" 2>/dev/null)
 
-if [ -z "$touchad_id" ]; then
+# Fallback to broader search if specific patterns fail
+if [ -z "$touchpad_id" ]; then
+    touchpad_id=$(xinput list 2>/dev/null | grep -i 'touchpad' | grep -oP 'id=\K\d+' | head -1)
+fi
+
+if [ -z "$touchpad_id" ]; then
   dunstify -a "Touchpad" "Touchpad" "Touchpad not found" -r 100
   exit 1
 fi
 
-state=$(xinput list-props "$touchad_id" | grep "Device Enabled" | grep -o "[01]$")
+state=$(xinput list-props "$touchpad_id" 2>/dev/null | grep "Device Enabled" | grep -o "[01]$")
+
+if [ -z "$state" ]; then
+  dunstify -a "Touchpad" "Touchpad" "Failed to get touchpad state" -r 100 -u critical
+  exit 1
+fi
 
 if [ "$state" -eq 1 ]; then
-  xinput disable "$touchad_id"
-  dunstify -a "Touchpad" "Touchpad" "Touchpad is disabled" -r 100
+  xinput disable "$touchpad_id" && \
+    dunstify -a "Touchpad" "Touchpad" "Touchpad is disabled" -r 100 || \
+    dunstify -a "Touchpad" "Touchpad" "Failed to disable touchpad" -r 100 -u critical
 else
-  xinput enable "$touchad_id"
-  dunstify -a "Touchpad" "Touchpad" "Touchpad is enabled" -r 100
+  xinput enable "$touchpad_id" && \
+    dunstify -a "Touchpad" "Touchpad" "Touchpad is enabled" -r 100 || \
+    dunstify -a "Touchpad" "Touchpad" "Failed to enable touchpad" -r 100 -u critical
 fi

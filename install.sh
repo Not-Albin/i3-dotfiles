@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Catppuccin Theme Dotfiles Installation Script
-# Supports: Arch, Debian/Ubuntu, Fedora, openSUSE, NixOS, Alpine
+# Supports: Arch, Debian/Ubuntu, Fedora, openSUSE, Alpine (NixOS: configs only)
 # Usage: ./install.sh [--dry-run] [--skip-deps] [--variant=<variant>]
 
 set -euo pipefail
@@ -10,7 +10,7 @@ set -euo pipefail
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOME_DIR="${HOME}"
 USR_DIR="/usr"
-BACKUP_DIR="${HOME}/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)"
+BACKUP_DIR="${HOME}/.dotfiles-backup-$(date +%Y%m%d-%H%M%S)-$RANDOM"
 
 # Catppuccin variants
 CATPPUCCIN_VARIANTS=("latte" "frappe" "macchiato" "mocha")
@@ -153,8 +153,8 @@ get_package_manager() {
             ;;
         nixos)
             PM="nix"
-            PM_INSTALL="nix profile install"
-            PM_UPDATE="nix channel-update"
+            PM_INSTALL=""
+            PM_UPDATE="nix-channel --update"
             ;;
         alpine)
             PM="apk"
@@ -349,17 +349,7 @@ EOF
             ;;
         *)
             log_error "No package list for OS: $OS_ID"
-            exit 1 echo "  Mod+1-0     - Switch workspace"
-    echo "  Mod+Shift+1-0 - Move window to workspace"
-    echo "  Mod+X       - Power menu"
-    echo "  Mod+C       - Screenshot menu"
-    echo "  Mod+Z       - Music player (ncmpcpp)"
-    echo
-    if [[ -d "$BACKUP_DIR" ]]; then
-        log_info "Backups saved to: $BACKUP_DIR"
-    fi
-}
-
+            exit 1
             ;;
     esac
 }
@@ -391,9 +381,50 @@ get_package_descriptions() {
     done
 }
 
+# Install packages in one batch, then retry individually if the batch fails.
+# A single unavailable package must not abort the whole installation.
+install_packages_with_fallback() {
+    local installer="$1"
+    shift
+    local -a packages=("$@")
+    local -a failed=()
+    local pkg
+
+    if [[ ${#packages[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    if run_cmd "$installer ${packages[*]}" true; then
+        return 0
+    fi
+
+    log_warn "Bulk install failed; retrying packages individually..."
+    for pkg in "${packages[@]}"; do
+        if run_cmd "$installer $pkg" true; then
+            log_info "Installed: $pkg"
+        else
+            log_warn "Failed to install: $pkg"
+            failed+=("$pkg")
+        fi
+    done
+
+    if [[ ${#failed[@]} -gt 0 ]]; then
+        log_warn "Some packages could not be installed (manual installation may be required):"
+        printf '  - %s\n' "${failed[@]}"
+    fi
+    return 0
+}
+
 install_dependencies() {
     if [[ "$SKIP_DEPS" == true ]]; then
         log_warn "Skipping dependency installation (--skip-deps flag)"
+        return 0
+    fi
+
+    if [[ "$PM" == "nix" ]]; then
+        log_warn "NixOS detected: this installer does not manage system packages."
+        log_info "Install dependencies via configuration.nix or: nix profile install nixpkgs#<package>"
+        log_info "Continuing with config installation only."
         return 0
     fi
 
@@ -411,15 +442,12 @@ install_dependencies() {
 
     if [[ "$PM" == "pacman" && -n "$AUR_HELPER" ]]; then
         # For Arch with AUR helper, use it for all packages
-        run_cmd "$AUR_HELPER -S --needed --noconfirm ${packages[*]}" true
-    elif [[ "$PM" == "nix" ]]; then
-        # NixOS uses nix profile install
-        run_cmd "nix profile install ${packages[*]}" true
+        install_packages_with_fallback "$AUR_HELPER -S --needed --noconfirm" "${packages[@]}"
     else
-        run_cmd "$PM_INSTALL ${packages[*]}" true
+        install_packages_with_fallback "$PM_INSTALL" "${packages[@]}"
     fi
 
-    log_success "Dependencies installed!"
+    log_success "Dependency installation step complete."
 }
 
 # CATPPUCCIN VARIANT SELECTION
@@ -514,10 +542,8 @@ backup_existing() {
     # Backup scripts in /usr/local/bin
     for script in "${SCRIPTS_TO_BACKUP[@]}"; do
         if [[ -e "/usr/local/bin/$script" || -L "/usr/local/bin/$script" ]]; then
-            if [[ "$has_backup" == false ]]; then
-                mkdir -p "$BACKUP_DIR/usr-local-bin"
-                has_backup=true
-            fi
+            mkdir -p "$BACKUP_DIR/usr-local-bin"
+            has_backup=true
             log_info "Backing up /usr/local/bin/$script"
             run_cmd "sudo cp \"/usr/local/bin/$script\" \"$BACKUP_DIR/usr-local-bin/\""
         fi
@@ -546,17 +572,20 @@ install_home_configs() {
 
     # 2. Render selected variant into staging
     log_step "Rendering Catppuccin $SELECTED_VARIANT variant to staging..."
-    if [[ -f "$DOTFILES_DIR/theme-switcher.sh" ]]; then
+    if [[ "$DRY_RUN" == true ]]; then
+        log_info "[DRY-RUN] Would render $SELECTED_VARIANT variant to $staging_dir"
+    elif [[ -f "$DOTFILES_DIR/theme-switcher.sh" ]]; then
         "$DOTFILES_DIR/theme-switcher.sh" "$SELECTED_VARIANT" --render-to "$staging_dir"
     else
         log_error "theme-switcher.sh not found at $DOTFILES_DIR/theme-switcher.sh"
         return 1
     fi
 
-    # 3. Copy rendered staging/.config -> ~/.config
+    # 3. Copy rendered staging/.config -> ~/.config (including dotfiles like .catppuccin-variant)
     if [[ -d "$staging_dir/.config" ]]; then
         log_info "Copying rendered .config to $HOME_DIR/.config..."
-        run_cmd "cp -r \"$staging_dir/.config/\"* \"$HOME_DIR/.config/\""
+        run_cmd "mkdir -p \"$HOME_DIR/.config\""
+        run_cmd "cp -r \"$staging_dir/.config/.\" \"$HOME_DIR/.config/\""
     fi
 
     # 4. Copy Pictures (wallpapers) from canonical (unchanged, no variant)

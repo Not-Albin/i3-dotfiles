@@ -17,6 +17,7 @@ REPO_HOME="$SCRIPT_DIR/canonical-configs"
 
 # The single source-of-truth variant that canonical-configs/.config always holds.
 # This is baked into the script; canonical-configs is never modified after reset.
+# IMPORTANT: If you change the default variant in canonical-configs, update this value!
 REFERENCE_VARIANT="mocha"
 
 # Source shared libraries and color palette
@@ -99,24 +100,25 @@ render_to_staging() {
         rm -rf "$dst_config"
         cp -r "$src_config" "$dst_config"
         log_info "Copied canonical-configs to $staging/.config (no recoloring needed)"
-        return 0
+    else
+        log_info "Rendering $(get_variant_display_name "$target") from $REFERENCE_VARIANT to $staging/.config"
+
+        # 1. Fresh copy canonical .config -> staging
+        rm -rf "$dst_config"
+        cp -r "$src_config" "$dst_config"
+
+        # 2. Build sed script: REFERENCE_VARIANT -> target
+        local sed_script
+        sed_script="$(build_sed_script "$REFERENCE_VARIANT" "$target")"
+
+        # 3. Recolor all palette-holding files under staging, skip Backup/
+        local changed
+        changed=$(recolor_directory "$sed_script" "$dst_config")
+
+        log_success "Rendered $changed file(s) to $staging/.config"
     fi
 
-    log_info "Rendering $(get_variant_display_name "$target") from $REFERENCE_VARIANT to $staging/.config"
-
-    # 1. Fresh copy canonical .config -> staging
-    rm -rf "$dst_config"
-    cp -r "$src_config" "$dst_config"
-
-    # 2. Build sed script: REFERENCE_VARIANT -> target
-    local sed_script
-    sed_script="$(build_sed_script "$REFERENCE_VARIANT" "$target")"
-
-    # 3. Recolor all palette-holding files under staging, skip Backup/
-    local changed
-    changed=$(recolor_directory "$sed_script" "$dst_config")
-
-    log_success "Rendered $changed file(s) to $staging/.config"
+    printf '%s\n' "$target" > "$dst_config/.catppuccin-variant"
 }
 
 # APPLY TO HOME CONFIG (runtime switching)

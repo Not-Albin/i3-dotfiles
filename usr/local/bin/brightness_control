@@ -1,11 +1,24 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # default
 step=+5
 
-video_card=$(ls -1 /sys/class/backlight/)
-cur_brightness=$(cat /sys/class/backlight/"$video_card"/brightness)
-max_brightness=$(cat /sys/class/backlight/"$video_card"/max_brightness)
+video_card=$(ls -1 /sys/class/backlight/ 2>/dev/null | head -1)
+
+if [ -z "$video_card" ]; then
+    dunstify "Brightness" "No backlight device found" -u critical 2>/dev/null
+    echo "Error: No backlight device found" >&2
+    exit 1
+fi
+
+cur_brightness=$(cat /sys/class/backlight/"$video_card"/brightness 2>/dev/null)
+max_brightness=$(cat /sys/class/backlight/"$video_card"/max_brightness 2>/dev/null)
+
+if [ -z "$cur_brightness" ] || [ -z "$max_brightness" ]; then
+    dunstify "Brightness" "Failed to read brightness values" -u critical 2>/dev/null
+    echo "Error: Failed to read brightness values" >&2
+    exit 1
+fi
 
 while getopts s: flag
 do
@@ -18,13 +31,20 @@ done
 
 step=$(echo "$step" | sed 's/+//g')
 step_c=$(( (step*max_brightness)/100 ))
-# step_c=$(echo "scale=2; $step*($max_brightness/100)" | bc -l | sed 's/\..*$//')
 new_brightness=$((cur_brightness + step_c))
 
 if [ "$new_brightness" -le "0" ]; then
-    echo "0" > /sys/class/backlight/"$video_card"/brightness
+    target=0
 elif [ "$new_brightness" -ge "$max_brightness" ] ; then
-    echo "$max_brightness" > /sys/class/backlight/"$video_card"/brightness
+    target="$max_brightness"
 else
-    echo "$new_brightness" > /sys/class/backlight/"$video_card"/brightness
+    target="$new_brightness"
+fi
+
+# Try to write with error handling
+if ! echo "$target" > /sys/class/backlight/"$video_card"/brightness 2>/dev/null; then
+    dunstify "Brightness" "Permission denied. Install brightnessctl or add user to 'video' group" -u critical 2>/dev/null
+    echo "Error: Permission denied writing to /sys/class/backlight/$video_card/brightness" >&2
+    echo "Tip: Install brightnessctl or add user to 'video' group" >&2
+    exit 1
 fi

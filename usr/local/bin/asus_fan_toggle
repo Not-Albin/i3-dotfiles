@@ -1,10 +1,18 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # 0 Performance
 # 1 Turbo
 # 2 Silent
 
 fan_boost_mode_file="/sys/devices/platform/asus-nb-wmi/throttle_thermal_policy"
+
+# Check if ASUS hardware is available
+if [ ! -f "$fan_boost_mode_file" ]; then
+    dunstify -a "Fan Mode" "Fan Mode" "ASUS fan control not available on this system" -u low 2>/dev/null
+    echo "ASUS fan control not available on this system" >&2
+    exit 0
+fi
+
 current_mode=$(cat "$fan_boost_mode_file")
 
 if [ "$current_mode" -eq 0 ]; then

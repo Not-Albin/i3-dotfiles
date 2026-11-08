@@ -1,11 +1,14 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 # upower
 
-# kill previous instances
-for pid in $(pidof -x battery); do
+# kill previous instances gracefully
+for pid in $(pidof -x battery_listener); do
     if [ "$pid" != $$ ]; then
-        kill -9 "$pid"
+        kill "$pid" 2>/dev/null
+        sleep 0.5
+        # Force kill if still running
+        kill -9 "$pid" 2>/dev/null
     fi
 done
 
