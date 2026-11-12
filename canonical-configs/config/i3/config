@@ -22,8 +22,9 @@ exec_always --no-startup-id picom &
 exec_always --no-startup-id dunst &
 exec_always --no-startup-id /usr/lib/mate-polkit/polkit-mate-authentication-agent-1 &
 exec_always --no-startup-id blueman-applet &
-#exec_always --no-startup-id asus_fan_listener  &
-#exec_always --no-startup-id battery_listener &
+exec_always --no-startup-id asus_fan_listener  &
+exec_always --no-startup-id battery_listener &
+exec --no-startup-id playerctld daemon
 
 bindsym XF86AudioRaiseVolume exec --no-startup-id volume_control -s +5 -m 125 && volume_level
 bindsym XF86AudioLowerVolume exec --no-startup-id volume_control -s -5 -m 125 && volume_level
@@ -56,7 +57,7 @@ bindsym $mod+s exec --no-startup-id nemo ~/Pictures/screenshots/
 bindsym $mod+d exec --no-startup-id rofi -show drun -no-default-config -config ~/.config/rofi/main.rasi
 
 #bindsym $mod+z exec --no-startup-id io.github.htkhiem.Euphonica
-bindsym $mod+z exec --no-startup-id kitty -e ncmpcpp 
+bindsym $mod+z exec --no-startup-id kitty -e ncmpcpp
 bindsym $mod+x exec --no-startup-id rofi-powermenu
 bindsym $mod+c exec --no-startup-id rofi-screenshot
 
@@ -215,7 +216,7 @@ client.unfocused        #6e738d #24273a #cad3f5 #f4dbd6   #6e738d
 client.focused_inactive #6e738d #24273a #cad3f5 #f4dbd6   #6e738d
 client.urgent           #f5a97f #24273a #f5a97f #6e738d   #f5a97f
 client.placeholder      #6e738d #24273a #cad3f5 #6e738d   #6e738d
-client.background       #24273a   	
+client.background       #24273a
 
 ### GAPS ###
 
